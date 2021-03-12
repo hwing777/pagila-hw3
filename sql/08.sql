@@ -18,3 +18,32 @@
  *    Ensure that you are not counting a customer that has rented a movie twice as 2 separate customers renting the movie.
  *    I did this by using the SELECT DISTINCT clause.
  */
+
+SELECT film.title
+FROM (
+    SELECT film_id, cust_count
+        FROM (
+        SELECT inventory.film_id, count(DISTINCT bucket_rentals.customer_id) as cust_count
+        FROM (
+            SELECT rental.rental_id, rental.inventory_id, bucket_cust_ids.customer_id
+            FROM (     
+              SELECT bucket_customer_ids.customer_id
+              FROM (
+                    SELECT inventory.film_id, rental.customer_id
+                    FROM rental
+                    JOIN inventory ON rental.inventory_id=inventory.inventory_id
+              ) AS bucket_customer_ids
+              JOIN film ON bucket_customer_ids.film_id=film.film_id
+              WHERE film.title LIKE 'BUCKET BROTHERHOOD'
+            ) AS bucket_cust_ids
+            JOIN rental ON bucket_cust_ids.customer_id=rental.customer_id
+        ) as bucket_rentals
+        JOIN inventory ON bucket_rentals.inventory_id=inventory.inventory_id
+        GROUP BY inventory.film_id
+    ) as bucket_film_ids
+    WHERE cust_count >= 3
+) as bucket_film_titles
+JOIN film ON bucket_film_titles.film_id=film.film_id
+WHERE film.title NOT LIKE 'BUCKET BROTHERHOOD'
+ORDER BY film.title
+;
